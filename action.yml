@@ -1,0 +1,137 @@
+name: 'Redmine plugin'
+description: 'Action to test a Redmine plugin using various versions of Redmine.'
+
+inputs:
+  checkout:
+    description: 'Checkout the plugin'
+    required: false
+    default: 'true'
+  database:
+    description: 'Database driver to use'
+    required: false
+    default: 'sqlite'
+  plugin_name:
+    description: 'Folder where the plugin will be installed'
+    required: true
+  redmine_version:
+    description: 'Redmine version to use'
+    required: true
+  ruby_version:
+    description: 'Ruby version to use'
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Checkout code
+      if: ${{ inputs.checkout == 'true' }}
+      uses: actions/checkout@v3
+
+    - name: Checkout Redmine
+      uses: actions/checkout@v3
+      with:
+        path: redmine
+        repository: redmine/redmine
+        ref: '${{ inputs.redmine_version }}-stable'
+
+    - name: Start MySQL
+      if: ${{ inputs.database == 'mysql' }}
+      uses: ankane/setup-mysql@v1
+
+    - name: Configure MySQL as Redmine's adapter
+      if: ${{ inputs.database == 'mysql' }}
+      run: |
+          mysql -e 'CREATE DATABASE redmine CHARACTER SET utf8mb4;'
+          mysql -e 'CREATE DATABASE redmine_test CHARACTER SET utf8mb4;'
+          cat <<EOF > config/database.yml
+          development:
+            adapter: mysql2
+            database: redmine
+            host: localhost
+            username: root
+            password: ""
+            encoding: utf8mb4
+          test:
+            adapter: mysql2
+            database: redmine_test
+            host: localhost
+            username: root
+            password: ""
+            encoding: utf8mb4
+          EOF
+      shell: bash
+      working-directory: redmine
+
+    - name: Start PostgreSQL
+      if: ${{ inputs.database == 'postgresql' }}
+      uses: ankane/setup-postgres@v1
+
+    - name: Configure Postgresql as Redmine's adapter
+      if: ${{ inputs.database == 'postgresql' }}
+      run: |
+          createdb --username=runner --no-password redmine
+          createdb --username=runner --no-password redmine_test
+          cat <<EOF > config/database.yml
+          development:
+            adapter: postgresql
+            database: redmine
+            host: localhost
+            username: runner
+            password: ""
+          test:
+            adapter: postgresql
+            database: redmine_test
+            host: localhost
+            username: runner
+            password: ""
+          EOF
+      shell: bash
+      working-directory: redmine
+
+    - name: Configure SQLite as Redmine's adapter
+      if: ${{ inputs.database == 'sqlite' }}
+      run: |
+          cat <<EOF > config/database.yml
+          development:
+            adapter: sqlite3
+            database: db/redmine.sqlite3
+          test:
+            adapter: sqlite3
+            database: db/redmine.sqlite3
+          EOF
+      shell: bash
+      working-directory: redmine
+
+    - name: Link plugin to Redmine
+      run: 'ln -sfn ${{ github.workspace }} redmine/plugins/${{ inputs.plugin_name }}'
+      shell: bash
+
+    - name: Setup Ruby
+      uses: ruby/setup-ruby@v1
+      with:
+          ruby-version: ${{ inputs.ruby_version }}
+          bundler-cache: true
+          working-directory: redmine
+      env:
+        BUNDLE_WITH: 'development test'
+        BUNDLE_WITHOUT: 'rmagick'
+
+    - name: Setup database
+      run: |
+        bundle exec rake db:create
+        bundle exec rake db:migrate
+        bundle exec rake redmine:plugins:migrate
+        bundle exec rake db:migrate
+        bundle exec rake redmine:load_default_data REDMINE_LANG=en
+        bundle exec rake generate_secret_token
+      env:
+        RAILS_ENV: test
+      shell: bash
+      working-directory: redmine
+
+    - name: Run tests
+      run: bundle exec rake redmine:plugins:test NAME=${{ inputs.plugin_name }} RUBYOPT="-W0"
+      env:
+        RAILS_ENV: test
+      shell: bash
+      working-directory: redmine

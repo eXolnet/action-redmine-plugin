@@ -1,0 +1,36 @@
+name: tests
+on: [push, pull_request]
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: true
+      matrix:
+        redmine: ["4.2", "5.0"]
+        db: ["sqlite", "mysql", "postgresql"]
+        include:
+          - ruby: "2.7"
+
+    name: "Ruby ${{ matrix.ruby }} / Redmine ${{ matrix.redmine }} / ${{ matrix.db }}"
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          repository: eXolnet/redmine_changeset_statuses
+
+      - name: Checkout Action
+        uses: actions/checkout@v3
+        with:
+          path: redmine-plugin-action
+
+      - name: Execute tests
+        uses: ./redmine-plugin-action
+        with:
+          checkout: "false"
+          plugin_name: "redmine_changeset_statuses"
+          redmine_version: "${{ matrix.redmine }}"
+          ruby_version: "${{ matrix.ruby }}"
+          database: "${{ matrix.db }}"
