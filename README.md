@@ -3,7 +3,7 @@
 [![Software License](https://img.shields.io/badge/license-MIT-brightgreen.svg?style=flat-square)](LICENSE)
 [![Build Status](https://img.shields.io/github/actions/workflow/status/eXolnet/action-redmine-plugin/tests.yml?label=tests&style=flat-square)](https://github.com/eXolnet/action-redmine-plugin/actions?query=workflow%3Atests)
 
-Action to test a Redmine plugin using various versions of Redmine.
+GitHub action to test a Redmine plugin using various versions of Redmine.
 
 ## Usage
 
@@ -21,9 +21,30 @@ jobs:
     steps:
       - uses: eXolnet/action-redmine-plugin@v1
         with:
+          # Automatically checkout the plugin.
+          # If false, the plugin must be manually checkout.
+          #
+          # Default: true
+          checkout: false
+
+          # Folder where the plugin will be installed.
+          #
+          # Default: null
           plugin_name: redmine_plugin
+          
+          # Redmine version to use.
+          #
+          # Default: null
           redmine_version: 5.0
+          
+          # Ruby version to use.
+          #
+          # Default: null
           ruby_version: 2.4
+          
+          # Database driver to use.
+          #
+          # Default: sqlite
           database: mysql
 ```
 
