@@ -34,6 +34,11 @@ runs:
         repository: redmine/redmine
         ref: '${{ inputs.redmine_version }}-stable'
 
+    - name: Install SQLite
+      if: ${{ inputs.database == 'sqlite' }}
+      run: sudo apt-get install -y sqlite3 libsqlite3-dev
+      shell: bash
+
     - name: Start MySQL
       if: ${{ inputs.database == 'mysql' }}
       uses: ankane/setup-mysql@v1
