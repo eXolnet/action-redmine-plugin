@@ -25,10 +25,10 @@ runs:
   steps:
     - name: Checkout code
       if: ${{ inputs.checkout == 'true' }}
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
 
     - name: Checkout Redmine
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
       with:
         path: redmine
         repository: redmine/redmine

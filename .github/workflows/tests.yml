@@ -17,12 +17,12 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v7
         with:
           repository: eXolnet/redmine_changeset_statuses
 
       - name: Checkout Action
-        uses: actions/checkout@v3
+        uses: actions/checkout@v7
         with:
           path: redmine-plugin-action
 
